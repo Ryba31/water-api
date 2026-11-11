@@ -7,8 +7,8 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// Твоя строка подключения к MongoDB (замени на свою, если она другая)
-const MONGODB_URI = 'mongodb+srv://ТВОЙ_ЛОГИН:ТВОЙ_ПАРОЛЬ@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority'
+// ТВОЯ СТРОКА ПОДКЛЮЧЕНИЯ (замени ТВОЙ_ПАРОЛЬ на реальный пароль!)
+const MONGODB_URI = 'mongodb+srv://rybden00_db_user:Kiker422@cluster0.q5srbxx.mongodb.net/?retryWrites=true&w=majority'
 
 let cachedDb = null
 
@@ -29,6 +29,7 @@ router.get('/users', async (req, res) => {
         const users = await db.collection('users').find({}).toArray()
         res.json(users)
     } catch (e) {
+        console.error(e)
         res.status(500).json({error: 'Ошибка базы данных'})
     }
 })
@@ -44,13 +45,14 @@ router.post('/users', async (req, res) => {
         }
 
         newUser.id = Date.now()
-        // Начинаем с 0 выпитой воды
         newUser.consumed = 0
+        newUser.norm = 2000
         newUser.lastUpdated = new Date().toISOString()
 
         await db.collection('users').insertOne(newUser)
         res.status(201).json(newUser)
     } catch (e) {
+        console.error(e)
         res.status(500).json({error: 'Ошибка базы данных'})
     }
 })
@@ -61,7 +63,6 @@ router.post('/water', async (req, res) => {
         const {email, amount} = req.body
         const db = await connectToDatabase()
 
-        // Обновляем количество выпитой воды
         await db.collection('users').updateOne(
             {email: email},
             {
@@ -71,11 +72,11 @@ router.post('/water', async (req, res) => {
         )
         res.json({success: true})
     } catch (e) {
+        console.error(e)
         res.status(500).json({error: 'Ошибка базы данных'})
     }
 })
 
-// Сброс воды (в конце дня)
 router.post('/reset-water', async (req, res) => {
     try {
         const {email} = req.body
@@ -86,6 +87,7 @@ router.post('/reset-water', async (req, res) => {
         )
         res.json({success: true})
     } catch (e) {
+        console.error(e)
         res.status(500).json({error: 'Ошибка базы данных'})
     }
 })
@@ -96,7 +98,6 @@ router.get('/leaderboard', async (req, res) => {
         const db = await connectToDatabase()
         const users = await db.collection('users').find({}).toArray()
 
-        // Считаем процент выполнения цели
         const leaderboard = users.map(user => {
             const norm = user.norm || 2000
             const consumed = user.consumed || 0
@@ -112,11 +113,28 @@ router.get('/leaderboard', async (req, res) => {
 
         res.json(leaderboard)
     } catch (e) {
+        console.error(e)
         res.status(500).json({error: 'Ошибка базы данных'})
     }
 })
 
-// Эта прослойка убирает /api из начала пути, чтобы Express правильно понял запрос
+// --- ОБНОВЛЕНИЕ НОРМЫ ---
+router.post('/update-norm', async (req, res) => {
+    try {
+        const {email, norm} = req.body
+        const db = await connectToDatabase()
+        await db.collection('users').updateOne(
+            {email: email},
+            {$set: {norm: norm}}
+        )
+        res.json({success: true})
+    } catch (e) {
+        console.error(e)
+        res.status(500).json({error: 'Ошибка базы данных'})
+    }
+})
+
+// Эта прослойка нужна для работы на Netlify (убирает префикс /api)
 app.use((req, res, next) => {
     if (req.url.startsWith('/api/')) {
         req.url = req.url.replace('/api', '')
