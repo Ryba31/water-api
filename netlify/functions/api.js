@@ -31,7 +31,7 @@ router.post('/users', (req, res) => {
 })
 
 // Подключаем роутер по пути /api/
-app.use('/api/', router)
+app.use('/', router)
 
 // Экспортируем как функцию для Netlify
 module.exports.handler = serverless(app)
