@@ -31,6 +31,16 @@ router.post('/users', (req, res) => {
 })
 
 // Подключаем роутер по пути /api/
+// Подключаем роутер к корню функции.
+// Если Netlify передал путь /api/users, Express не найдет его в роутере (там только /users),
+// поэтому мы просто "срезаем" лишний /api, если он есть.
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+        req.url = req.url.replace('/api', '')
+    }
+    next()
+})
+
 app.use('/', router)
 
 // Экспортируем как функцию для Netlify
