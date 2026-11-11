@@ -1,5 +1,4 @@
 [build]
-  command = "echo Building Functions"
   functions = "netlify/functions"
 
 [functions]
